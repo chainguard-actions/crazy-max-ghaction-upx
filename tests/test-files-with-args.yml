@@ -1,0 +1,28 @@
+name: Test files and args inputs
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Prepare binary to compress
+        run: |
+          mkdir -p /tmp/upx-test
+          cp /bin/ls /tmp/upx-test/ls-copy
+          echo "Original size: $(stat -c%s /tmp/upx-test/ls-copy) bytes"
+      - id: action
+        uses: .
+        with:
+          version: latest
+          files: |
+            /tmp/upx-test/ls-copy
+          args: '--best'
+      - name: Assert binary was compressed
+        run: |
+          if [ ! -f /tmp/upx-test/ls-copy ]; then
+            echo "FAIL: compressed file not found"
+            exit 1
+          fi
+          echo "Compressed size: $(stat -c%s /tmp/upx-test/ls-copy) bytes"
+          echo "PASS"
