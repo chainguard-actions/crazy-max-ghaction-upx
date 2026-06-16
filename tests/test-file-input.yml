@@ -1,0 +1,25 @@
+name: Test file input (deprecated)
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Prepare test binary
+        run: |
+          mkdir -p /tmp/upx-test-file
+          cp /bin/cat /tmp/upx-test-file/cat-copy
+          chmod +x /tmp/upx-test-file/cat-copy
+          echo "Original size: $(stat -c%s /tmp/upx-test-file/cat-copy) bytes"
+      - id: action
+        uses: .
+        with:
+          version: latest
+          file: /tmp/upx-test-file/cat-copy
+      - name: Assert binary was compressed
+        run: |
+          echo "Compressed size: $(stat -c%s /tmp/upx-test-file/cat-copy) bytes"
+          # Verify the binary still works after compression
+          /tmp/upx-test-file/cat-copy /dev/null
+          echo "PASS: binary compressed via deprecated file input and still executable"

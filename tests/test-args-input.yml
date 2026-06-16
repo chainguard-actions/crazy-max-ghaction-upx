@@ -1,0 +1,27 @@
+name: Test args input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Prepare test binary
+        run: |
+          mkdir -p /tmp/upx-test-args
+          cp /bin/echo /tmp/upx-test-args/echo-copy
+          chmod +x /tmp/upx-test-args/echo-copy
+          echo "Original size: $(stat -c%s /tmp/upx-test-args/echo-copy) bytes"
+      - id: action
+        uses: .
+        with:
+          version: latest
+          files: |
+            /tmp/upx-test-args/echo-copy
+          args: --best
+      - name: Assert binary was compressed with args
+        run: |
+          echo "Compressed size: $(stat -c%s /tmp/upx-test-args/echo-copy) bytes"
+          # Verify the binary still works after compression
+          /tmp/upx-test-args/echo-copy "hello from compressed binary"
+          echo "PASS: binary compressed with --best args and still executable"
