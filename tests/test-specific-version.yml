@@ -1,4 +1,4 @@
-name: Test UPX install-only mode
+name: Test UPX specific version installation
 on:
   workflow_dispatch:
 jobs:
@@ -10,20 +10,19 @@ jobs:
       - id: upx
         uses: .
         with:
-          version: latest
+          version: 'v4.2.4'
           install-only: 'true'
 
-      - name: Assert UPX is installed and on PATH
+      - name: Assert UPX 4.2.4 is installed
         run: |
           if ! command -v upx > /dev/null 2>&1; then
             echo "FAIL: upx not found on PATH"
             exit 1
           fi
           UPX_VERSION=$(upx --version 2>&1 | head -1)
-          echo "UPX version: $UPX_VERSION"
-          echo "PASS: upx is installed and accessible"
-
-      - name: Assert UPX can report its version
-        run: |
-          upx --version
-          echo "PASS: upx --version succeeded"
+          echo "UPX version output: $UPX_VERSION"
+          if ! echo "$UPX_VERSION" | grep -q "4.2.4"; then
+            echo "FAIL: expected version 4.2.4 but got: $UPX_VERSION"
+            exit 1
+          fi
+          echo "PASS: upx 4.2.4 is installed"

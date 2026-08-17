@@ -1,0 +1,47 @@
+name: Test deprecated file input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a test binary to compress
+        run: |
+          # Create a simple C program and compile it
+          cat > /tmp/hello.c << 'EOF'
+          #include <stdio.h>
+          int main() { printf("hello\n"); return 0; }
+          EOF
+          gcc -o /tmp/hello /tmp/hello.c
+          cp /tmp/hello "$GITHUB_WORKSPACE/hello"
+          ls -lh "$GITHUB_WORKSPACE/hello"
+
+      - id: action
+        uses: .
+        with:
+          file: "${{ github.workspace }}/hello"
+
+      - name: Assert binary still exists and is executable
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/hello" ]; then
+            echo "FAIL: compressed binary not found"
+            exit 1
+          fi
+          if [ ! -x "$GITHUB_WORKSPACE/hello" ]; then
+            echo "FAIL: binary is not executable"
+            exit 1
+          fi
+          echo "PASS: binary exists and is executable"
+          ls -lh "$GITHUB_WORKSPACE/hello"
+
+      - name: Assert binary runs correctly
+        run: |
+          OUTPUT=$("$GITHUB_WORKSPACE/hello")
+          echo "Output: $OUTPUT"
+          if [ "$OUTPUT" != "hello" ]; then
+            echo "FAIL: expected 'hello' but got '$OUTPUT'"
+            exit 1
+          fi
+          echo "PASS: binary runs correctly after compression"

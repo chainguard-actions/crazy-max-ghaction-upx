@@ -1,0 +1,33 @@
+name: Test latest UPX version install
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          version: 'latest'
+          install-only: 'true'
+      - name: Assert UPX latest is installed
+        run: |
+          echo "PATH: $PATH"
+          # core.addPath() should update PATH for subsequent steps
+          if command -v upx >/dev/null 2>&1; then
+            UPX_VERSION=$(upx --version 2>&1 | head -1)
+            echo "UPX version output: $UPX_VERSION"
+            echo "PASS: UPX latest installed successfully"
+            exit 0
+          fi
+          # Fallback: search common tool cache locations
+          UPX_BIN=$(find /opt/hostedtoolcache /root /home /tmp -name 'upx' -type f -executable 2>/dev/null | head -1)
+          if [ -n "$UPX_BIN" ]; then
+            UPX_VERSION=$("$UPX_BIN" --version 2>&1 | head -1)
+            echo "UPX version output: $UPX_VERSION"
+            echo "PASS: UPX latest installed successfully (found at $UPX_BIN)"
+            exit 0
+          fi
+          echo "FAIL: upx not found anywhere"
+          exit 1

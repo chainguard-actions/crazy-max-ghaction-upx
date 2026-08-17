@@ -1,0 +1,53 @@
+name: Test UPX compression with custom args
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create test binaries to compress
+        run: |
+          cp /usr/bin/find "$GITHUB_WORKSPACE/test-binary-1"
+          cp /usr/bin/sort "$GITHUB_WORKSPACE/test-binary-2"
+          chmod +x "$GITHUB_WORKSPACE/test-binary-1"
+          chmod +x "$GITHUB_WORKSPACE/test-binary-2"
+          echo "Binary 1 size: $(stat -c%s "$GITHUB_WORKSPACE/test-binary-1")"
+          echo "Binary 2 size: $(stat -c%s "$GITHUB_WORKSPACE/test-binary-2")"
+
+      - id: upx
+        uses: .
+        with:
+          version: latest
+          files: |
+            ${{ github.workspace }}/test-binary-1
+            ${{ github.workspace }}/test-binary-2
+          args: --best
+
+      - name: Assert both binaries exist after compression
+        run: |
+          PASS=true
+          for f in "$GITHUB_WORKSPACE/test-binary-1" "$GITHUB_WORKSPACE/test-binary-2"; do
+            if [ ! -f "$f" ]; then
+              echo "FAIL: $f not found after compression"
+              PASS=false
+            else
+              SIZE=$(stat -c%s "$f")
+              echo "$f compressed size: $SIZE"
+            fi
+          done
+          if [ "$PASS" = "false" ]; then
+            exit 1
+          fi
+          echo "PASS: all binaries present after compression with --best flag"
+
+      - name: Assert both binaries are still executable
+        run: |
+          for f in "$GITHUB_WORKSPACE/test-binary-1" "$GITHUB_WORKSPACE/test-binary-2"; do
+            if [ ! -x "$f" ]; then
+              echo "FAIL: $f is not executable after compression"
+              exit 1
+            fi
+          done
+          echo "PASS: all compressed binaries are executable"

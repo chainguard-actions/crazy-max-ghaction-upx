@@ -1,0 +1,43 @@
+name: Test basic UPX compression
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Create a test binary to compress
+        run: |
+          # Use a larger binary to ensure compression is effective
+          cp /usr/bin/find "$GITHUB_WORKSPACE/test-binary"
+          chmod +x "$GITHUB_WORKSPACE/test-binary"
+          ORIGINAL_SIZE=$(stat -c%s "$GITHUB_WORKSPACE/test-binary")
+          echo "Original size: $ORIGINAL_SIZE"
+          echo "ORIGINAL_SIZE=$ORIGINAL_SIZE" >> "$GITHUB_ENV"
+
+      - id: upx
+        uses: .
+        with:
+          version: latest
+          files: |
+            ${{ github.workspace }}/test-binary
+
+      - name: Assert binary still exists after compression
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/test-binary" ]; then
+            echo "FAIL: test-binary not found after compression"
+            exit 1
+          fi
+          COMPRESSED_SIZE=$(stat -c%s "$GITHUB_WORKSPACE/test-binary")
+          echo "Original size: $ORIGINAL_SIZE"
+          echo "Compressed size: $COMPRESSED_SIZE"
+          echo "PASS: binary exists after compression (original=$ORIGINAL_SIZE, compressed=$COMPRESSED_SIZE)"
+
+      - name: Assert compressed binary is executable
+        run: |
+          if [ ! -x "$GITHUB_WORKSPACE/test-binary" ]; then
+            echo "FAIL: test-binary is not executable"
+            exit 1
+          fi
+          echo "PASS: compressed binary is executable"

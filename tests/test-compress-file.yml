@@ -1,0 +1,57 @@
+name: Test file compression
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Prepare a binary to compress
+        run: |
+          mkdir -p /tmp/upx-test
+          # Compile a static binary that UPX can compress
+          cat > /tmp/upx-test/hello.c << 'EOF'
+          #include <stdio.h>
+          #include <string.h>
+          int main(int argc, char *argv[]) {
+            char buf[4096];
+            memset(buf, 0, sizeof(buf));
+            printf("Hello from UPX test binary\n");
+            return 0;
+          }
+          EOF
+          # Try static compilation first (produces larger, more compressible binary)
+          if gcc -static -O0 -o /tmp/upx-test/test-binary /tmp/upx-test/hello.c 2>/dev/null; then
+            echo "Compiled static binary"
+          else
+            gcc -O0 -o /tmp/upx-test/test-binary /tmp/upx-test/hello.c
+            echo "Compiled dynamic binary"
+          fi
+          ORIGINAL_SIZE=$(stat -c%s /tmp/upx-test/test-binary)
+          echo "Original size: $ORIGINAL_SIZE bytes"
+          echo "ORIGINAL_SIZE=$ORIGINAL_SIZE" >> $GITHUB_ENV
+          # Verify it's executable
+          /tmp/upx-test/test-binary
+      - id: action
+        uses: .
+        with:
+          files: |
+            /tmp/upx-test/test-binary
+          args: '--best -f'
+      - name: Assert file was compressed
+        run: |
+          if [ ! -f /tmp/upx-test/test-binary ]; then
+            echo "FAIL: compressed file not found"
+            exit 1
+          fi
+          COMPRESSED_SIZE=$(stat -c%s /tmp/upx-test/test-binary)
+          echo "Original size: $ORIGINAL_SIZE bytes"
+          echo "Compressed size: $COMPRESSED_SIZE bytes"
+          if [ "$COMPRESSED_SIZE" -ge "$ORIGINAL_SIZE" ]; then
+            echo "FAIL: compressed file ($COMPRESSED_SIZE) is not smaller than original ($ORIGINAL_SIZE)"
+            exit 1
+          fi
+          echo "PASS: file was compressed from $ORIGINAL_SIZE to $COMPRESSED_SIZE bytes"
+          # Verify the compressed binary still runs
+          /tmp/upx-test/test-binary
+          echo "PASS: compressed binary executes correctly"
