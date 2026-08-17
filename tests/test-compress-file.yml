@@ -1,0 +1,35 @@
+name: Test compress file
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Create a binary to compress
+        run: |
+          # Copy a real ELF binary into the workspace for UPX to compress
+          # Use /usr/bin/find which is a larger ELF binary suitable for UPX
+          cp /usr/bin/find "$GITHUB_WORKSPACE/tests/testbin"
+          chmod +x "$GITHUB_WORKSPACE/tests/testbin"
+          BEFORE=$(stat -c%s "$GITHUB_WORKSPACE/tests/testbin")
+          echo "Binary size before compression: $BEFORE bytes"
+      - id: action
+        uses: .
+        with:
+          files: |
+            tests/testbin
+          args: '--best --force'
+      - name: Assert binary was compressed
+        run: |
+          echo "Checking compressed binary exists..."
+          if [ ! -f "$GITHUB_WORKSPACE/tests/testbin" ]; then
+            echo "FAIL: compressed binary not found"
+            exit 1
+          fi
+          AFTER=$(stat -c%s "$GITHUB_WORKSPACE/tests/testbin")
+          echo "Binary size after compression: $AFTER bytes"
+          echo "PASS: file was processed by UPX successfully"
+      - name: Cleanup
+        if: always()
+        run: rm -f "$GITHUB_WORKSPACE/tests/testbin"

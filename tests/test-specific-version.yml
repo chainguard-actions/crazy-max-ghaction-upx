@@ -1,0 +1,33 @@
+name: Test specific UPX version installation
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - id: action
+        uses: .
+        with:
+          version: 'v4.2.4'
+          install-only: 'true'
+      - name: Assert correct UPX version is installed
+        run: |
+          echo "Checking upx is available..."
+          # Find upx binary - either on PATH or in tool cache
+          if command -v upx > /dev/null 2>&1; then
+            UPX_BIN="upx"
+          else
+            UPX_BIN=$(find /opt/hostedtoolcache /home/runner /root -name 'upx' -type f 2>/dev/null | head -1)
+            if [ -z "$UPX_BIN" ]; then
+              echo "FAIL: upx not found"
+              exit 1
+            fi
+          fi
+          INSTALLED_VERSION="$($UPX_BIN --version | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?')"
+          echo "Installed UPX version: $INSTALLED_VERSION"
+          if [ "$INSTALLED_VERSION" != "4.2.4" ]; then
+            echo "FAIL: expected version 4.2.4 but got $INSTALLED_VERSION"
+            exit 1
+          fi
+          echo "PASS: correct UPX version installed"

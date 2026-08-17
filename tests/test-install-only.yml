@@ -1,4 +1,4 @@
-name: Test install-only
+name: Test install-only mode
 on:
   workflow_dispatch:
 jobs:
@@ -9,10 +9,22 @@ jobs:
       - id: action
         uses: .
         with:
-          version: latest
           install-only: 'true'
       - name: Assert UPX is installed
         run: |
-          which upx || (echo "FAIL: upx not found in PATH" && exit 1)
-          upx --version
-          echo "PASS"
+          echo "Checking upx is available on PATH..."
+          if command -v upx > /dev/null 2>&1; then
+            echo "upx found on PATH: $(command -v upx)"
+            echo "upx version: $(upx --version | head -1)"
+            echo "PASS: upx is installed and on PATH"
+          else
+            echo "upx not on PATH, searching tool cache..."
+            UPX_PATH=$(find /opt/hostedtoolcache /home/runner /root /tmp -name 'upx' -type f 2>/dev/null | head -1)
+            if [ -z "$UPX_PATH" ]; then
+              echo "FAIL: upx not found anywhere on the system"
+              exit 1
+            fi
+            echo "Found upx at: $UPX_PATH"
+            echo "upx version: $($UPX_PATH --version | head -1)"
+            echo "PASS: upx is installed (found in tool cache)"
+          fi

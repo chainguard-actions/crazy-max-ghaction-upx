@@ -1,0 +1,48 @@
+name: Test deprecated file input
+on:
+  workflow_dispatch:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Build a small binary to compress
+        run: |
+          cat > /tmp/hello.c << 'EOF'
+          #include <stdio.h>
+          int main() { printf("hello\n"); return 0; }
+          EOF
+          gcc -o /tmp/hello /tmp/hello.c
+          cp /tmp/hello "$GITHUB_WORKSPACE/hello"
+
+      - name: Get original size
+        run: |
+          ORIG=$(stat -c%s "$GITHUB_WORKSPACE/hello")
+          echo "Original size: $ORIG"
+          echo "ORIG_SIZE=$ORIG" >> "$GITHUB_ENV"
+
+      - id: upx
+        uses: .
+        with:
+          file: hello
+          args: --best
+
+      - name: Assert binary still runs after compression
+        run: |
+          if ! "$GITHUB_WORKSPACE/hello"; then
+            echo "FAIL: compressed binary did not execute successfully"
+            exit 1
+          fi
+          echo "PASS: compressed binary runs correctly"
+
+      - name: Assert binary was compressed (size reduced)
+        run: |
+          NEW=$(stat -c%s "$GITHUB_WORKSPACE/hello")
+          echo "Compressed size: $NEW"
+          echo "Original size: $ORIG_SIZE"
+          if [ "$NEW" -ge "$ORIG_SIZE" ]; then
+            echo "FAIL: expected compressed size ($NEW) to be less than original ($ORIG_SIZE)"
+            exit 1
+          fi
+          echo "PASS: binary was compressed"
