@@ -4,8 +4,13 @@
   "version": "v3.2.0",
   "commit_sha": "db8cc9515a4a7ea1b312cb82fbeae6d716daf777",
   "url": "https://github.com/crazy-max/ghaction-upx",
-  "policy_sha": "d636be7e43ef829af6e853da6b3c7566db9f72fe",
+  "policy_sha": "374911c4be584df24e6da57af2d990570ef0f859",
   "test_policy_sha": "843adf9e4b8f85d0c08b27b9d0b09dd094b54702",
   "test_agent_version": "2",
-  "harden_agent_version": "2"
+  "harden_agent_version": "2",
+  "dist_artifact": {
+    "gcs_uri": "gs://patch-actions-node-artifacts/dist-artifacts/crazy-max/ghaction-upx/v3.2.0/sha256-4f56c95397be5dde2af73556af6e7ac671097beb18e7a83421aaed401ae1ca1e.tar.gz",
+    "sha256": "4f56c95397be5dde2af73556af6e7ac671097beb18e7a83421aaed401ae1ca1e",
+    "size_bytes": 628524
+  }
 }
